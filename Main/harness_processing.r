@@ -1,21 +1,21 @@
 ## =======================================================================
-## This functions reshapes output of model 
+## This functions reshapes output of model
 ## =======================================================================
 process.harness.data<-function(filename,dir.inputs,experiment.version,dir.harness){
 #Load needed libraries
  library(reshape2)
- library(data.table) 
+ library(data.table)
 #load experimental design
   Exp.design<-read.csv(paste(dir.inputs,experiment.version,sep=""))
 #load harness data
-  harness.data<-data.table(read.csv(paste(dir.harness,filename,sep=""))) 
-#convert integer values in Exp.design into numeric 
+  harness.data<-data.table(read.csv(paste(dir.harness,filename,sep="")))
+#convert integer values in Exp.design into numeric
   integers<-names(subset(sapply(Exp.design,is.integer),sapply(Exp.design,is.integer)==TRUE))
-  Exp.design[,integers]<- lapply(Exp.design[,integers], as.numeric) 
+  Exp.design[,integers]<- lapply(Exp.design[,integers], as.numeric)
   Exp.design<-data.table(Exp.design)
-#merge Exp design with harnessed data  
+#merge Exp design with harnessed data
   harness.data<-merge(harness.data,Exp.design,by="Run.ID")
-#Reshape output and in  future calculate additional metrics 
+#Reshape output and in  future calculate additional metrics
   harness.data[,TimeStep:=NULL]
   harness.data[,EndTime:=NULL]
   harness.data[,Budget.function.N:=NULL]
@@ -23,7 +23,7 @@ process.harness.data<-function(filename,dir.inputs,experiment.version,dir.harnes
   harness.data[,Budget.N:=NULL]
   harness.data[,Budget.S:=NULL]
 #Adjust column names
-  setnames(harness.data,c("Are.N","Ace.N","Are.S","Ace.S"),c("Are_N","Ace_N","Are_S","Ace_S")) 
+  setnames(harness.data,c("Are.N","Ace.N","Are.S","Ace.S"),c("Are_N","Ace_N","Are_S","Ace_S"))
 #Create levels for regions
   id.vars<-c("Run.ID","Future.ID","time",
             "S","Delta.Temp","CO2.Concentration",
@@ -33,21 +33,21 @@ process.harness.data<-function(filename,dir.inputs,experiment.version,dir.harnes
 			"policy.name","Cost.S.Damage","policy.status","Policy.Duration","Policy.Start.Time",
             "ce.tax_N","RD.subsidy_N","RD.subsidy.GF_N","Tec.subsidy_N","Tec.subsidy.GF_N","ce.tax_S","RD.subsidy_S","Tec.subsidy_S",
 			"dS.lag","rho")
-			
- measure.vars<-subset(colnames(harness.data),!(colnames(harness.data)%in%id.vars)) 
-#convert integer measure.vars into numeric 
+
+ measure.vars<-subset(colnames(harness.data),!(colnames(harness.data)%in%id.vars))
+#convert integer measure.vars into numeric
   integers<-names(subset(sapply(harness.data[,measure.vars,with=FALSE],is.integer),sapply(harness.data[,measure.vars,with=FALSE],is.integer)==TRUE))
-  harness.data[,integers:=lapply(harness.data[,integers,with=FALSE], as.numeric),with=FALSE]  
+  harness.data[,integers:=lapply(harness.data[,integers,with=FALSE], as.numeric),with=FALSE]
 #reshape to generate region
  harness.data<-melt(harness.data, id.vars=id.vars, measure.vars=measure.vars,  variable.name="Variable.Region")
  harness.data<-cbind(harness.data,colsplit(harness.data$Variable.Region,("_"),c("Variable","Region")))
  harness.data[,Variable.Region:=NULL]
 #reshape variables to wide
- harness.data <- data.table(dcast(harness.data, 
+ harness.data <- data.table(dcast(harness.data,
                           Run.ID+
 						  Future.ID+
 						  time+
-						  S+ 
+						  S+
 						  Delta.Temp+
 						  CO2.Concentration+
 						  alfa+
@@ -57,7 +57,7 @@ process.harness.data<-function(filename,dir.inputs,experiment.version,dir.harnes
 						  Eta.ce+
 						  Gamma.re+
 						  Gamma.ce+
-						  Nu.re+ 
+						  Nu.re+
 						  Nu.ce+
 						  k.re+
 						  k.ce+
@@ -75,7 +75,7 @@ process.harness.data<-function(filename,dir.inputs,experiment.version,dir.harnes
                           Cost.S.Damage+
 						  policy.status+
 						  Policy.Duration+
-						  Policy.Start.Time+				 
+						  Policy.Start.Time+
                           ce.tax_N+
 						  RD.subsidy_N+
 						  RD.subsidy.GF_N+
@@ -91,21 +91,21 @@ return(harness.data)
 }
 
 ## =======================================================================
-## This functions reshapes output of model 
+## This functions reshapes output of model
 ## =======================================================================
 process.prim.data<-function(filename,dir.harness){
   harness.data<-read.csv(paste(dir.harness,filename,sep=""))
   #First obtain the policy vector
    policy.elements<-c("Policy.Start.Time","Policy.Duration",
                      "ce.tax_N","RD.subsidy_N","RD.subsidy.GF_N","Tec.subsidy_N","Tec.subsidy.GF_N",
-                     "ce.tax_S","RD.subsidy_S","Tec.subsidy_S")					 
+                     "ce.tax_S","RD.subsidy_S","Tec.subsidy_S")
    policy.table<-aggregate(harness.data[,policy.elements],list(Run.ID=harness.data$Run.ID),max)
   #Create time slices
    #slice at 100 yrs
-    slice.100<-harness.data[,subset(colnames(harness.data),!(colnames(harness.data)%in%policy.elements))]   
+    slice.100<-harness.data[,subset(colnames(harness.data),!(colnames(harness.data)%in%policy.elements))]
 	slice.100<-subset(slice.100,slice.100$time==2112)
    #slice at 300 yrs
-	slice.300<-harness.data[,subset(colnames(harness.data),!(colnames(harness.data)%in%policy.elements))]   
+	slice.300<-harness.data[,subset(colnames(harness.data),!(colnames(harness.data)%in%policy.elements))]
 	slice.300<-subset(slice.300,slice.300$time==2312)
     colnames(slice.300)<-paste(colnames(slice.300),".300yr",sep="")
 	slice.300$Run.ID<-slice.300$Run.ID.300yr
@@ -130,14 +130,14 @@ process.prim.data<-function(filename,dir.harness){
 ## =======================================================================
 
 merge.exp.design<-function(dir.inputs,experiment.version,data)
-{ 
+{
  #load experimental design
   Exp.design<-read.csv(paste(dir.inputs,experiment.version,sep=""))
-#convert integer values in Exp.design into numeric 
+#convert integer values in Exp.design into numeric
   integers<-names(subset(sapply(Exp.design,is.integer),sapply(Exp.design,is.integer)==TRUE))
-  Exp.design[,integers]<- lapply(Exp.design[,integers], as.numeric) 
+  Exp.design[,integers]<- lapply(Exp.design[,integers], as.numeric)
   Exp.design<-data.table(Exp.design)
-#merge Exp design with harnessed data  
+#merge Exp design with harnessed data
   data<-merge(data,Exp.design,by="Run.ID")
 #Create levels for regions
   id.vars<-c("Run.ID","Future.ID","time",
@@ -146,10 +146,9 @@ merge.exp.design<-function(dir.inputs,experiment.version,data)
  			"lambda.S","sigma.utility",
  			"Climate.Model","Beta.Delta.Temp","CO2.base","CO2.Disaster","Delta.Temp.Disaster","qsi","Delta.S","S.0",
  			"policy.name")
- measure.vars<-subset(colnames(data),!(colnames(data)%in%id.vars)) 
-#convert integer measure.vars into numeric 
+ measure.vars<-subset(colnames(data),!(colnames(data)%in%id.vars))
+#convert integer measure.vars into numeric
   integers<-names(subset(sapply(data[,measure.vars,with=FALSE],is.integer),sapply(data[,measure.vars,with=FALSE],is.integer)==TRUE))
   data[,integers:=lapply(data[,integers,with=FALSE], as.numeric),with=FALSE]
   return(data)
 }
-
